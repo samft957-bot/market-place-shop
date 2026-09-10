@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Market place shop</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;700&display=swap');
+
+  :root{
+    --ink:#1C2620;
+    --paper:#E9E4D4;
+    --paper-deep:#DED6BF;
+    --card:#F6F3E9;
+    --brick:#AE4A3C;
+    --mustard:#D9A441;
+    --line:#C9C0A4;
+    --white:#FBF9F2;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Space Grotesk',sans-serif;
+    min-height:100vh;
+  }
+  h1,h2,h3,.serif{font-family:'Fraunces',serif;}
+  button{font-family:'Space Grotesk',sans-serif;cursor:pointer;}
+  input,textarea{font-family:'Space Grotesk',sans-serif;}
+
+  header{
+    border-bottom:2px solid var(--ink);
+    padding:18px 24px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .brand{cursor:pointer;}
+  .brand .name{font-weight:700;font-size:26px;letter-spacing:-0.5px;}
+  .brand .tag{font-size:12.5px;opacity:.65;}
+  .header-actions{display:flex;align-items:center;gap:10px;}
+
+  main{padding:28px 24px 60px;max-width:1040px;margin:0 auto;}
+
+  .btn{
+    font-weight:500;font-size:14px;padding:10px 18px;border-radius:4px;
+    border:2px solid var(--ink); background:transparent; color:var(--ink);
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .btn-primary{background:var(--ink);color:var(--paper);}
+  .btn-accent{background:var(--mustard);color:var(--ink);}
+  .btn-danger{background:transparent;color:var(--brick);border-color:var(--brick);}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;}
+
+  .card{
+    background:var(--card); border:1.5px solid var(--line); border-radius:6px;
+    overflow:hidden; display:flex; flex-direction:column;
+  }
+  .card .photo{aspect-ratio:4/3; background:var(--paper-deep);}
+  .card .photo img{width:100%;height:100%;object-fit:cover;display:block;}
+  .card .placeholder{
+    width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+    color:var(--white);font-size:13px;text-align:center;padding:12px;
+    background:linear-gradient(135deg,#9aa89f,#6f7f74);
+  }
+  .card .body{padding:14px 14px 16px;border-top:1.5px dashed var(--line);display:flex;flex-direction:column;gap:8px;flex:1;}
+  .card h3{margin:0;font-weight:600;font-size:17px;line-height:1.25;}
+  .card p{margin:0;font-size:13px;opacity:.7;line-height:1.4;}
+  .card .row{margin-top:auto;display:flex;align-items:center;justify-content:space-between;padding-top:8px;}
+
+  .price-tag{
+    transform:rotate(-2deg); background:var(--brick); color:var(--white);
+    font-weight:700; font-size:15px; padding:4px 10px; border-radius:3px;
+    display:inline-block; box-shadow:1px 2px 0 rgba(0,0,0,.15);
+  }
+
+  .field{display:block;margin-bottom:14px;}
+  .field span{display:block;font-size:12.5px;opacity:.75;margin-bottom:5px;}
+  .input{
+    width:100%;padding:9px 11px;font-size:14px;border:1.5px solid var(--line);
+    border-radius:4px;background:var(--white);color:var(--ink);outline:none;
+  }
+  textarea.input{min-height:64px;resize:vertical;}
+
+  .form-card{background:var(--card);border:1.5px solid var(--line);border-radius:6px;padding:20px;max-width:420px;}
+
+  .qty-btn{width:26px;height:26px;border-radius:4px;border:1.5px solid var(--line);background:var(--white);font-size:15px;line-height:1;}
+
+  .note{
+    background:var(--paper-deep);border:1.5px solid var(--line);border-radius:6px;
+    padding:8px 12px;font-size:12.5px;opacity:.75;margin-bottom:16px;
+  }
+
+  .divider{border-top:1.5px dashed var(--line);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand" onclick="setView('shop')">
+    <div class="name">Market place shop</div>
+    <div class="tag">Boutique en ligne sécurisé</div>
+  </div>
+  <div class="header-actions" id="headerActions"></div>
+</header>
+
+<main id="main"></main>
+
+<script>
+// ---------- Paiement ----------
+// Remplacez par l'URL de votre backend une fois déployé (voir server.js fourni).
+const BACKEND_URL = "https://market-place-shop-2.onrender.com";
+
+// ---------- State ----------
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+let state = {
+  products: [
+    { id: uid(), name: "Veste en jean délavée", price: 28, description: "Taille M, coupe vintage, petite usure au col.", photo: null },
+    { id: uid(), name: "Lot de 6 vinyles jazz", price: 45, description: "Pressages des années 70, pochettes correctes.", photo: null },
+    { id: uid(), name: "Appareil photo argentique", price: 65, description: "Fonctionnel, testé, sans étui.", photo: null },
+  ],
+  cart: [],       // { id, name, price, photo, qty }
+  view: "shop",   // shop | admin | cart | checkout | confirmation
+  sellerMode: false,
+  editing: null,  // null | "new" | product object
+  order: null,
+  formPhoto: null // temp photo while editing/adding a product
+};
+
+const currency = (n) => n.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
+
+// ---------- Actions ----------
+function setView(v){ state.view = v; render(); }
+
+const SELLER_PASSWORD = "Samft_2011"; // remplace par ton propre mot de passe
+
+function toggleSeller(){
+  if (!state.sellerMode){
+    const pwd = window.prompt("Mot de passe vendeur :");
+    if (pwd === null) return;
+    if (pwd !== SELLER_PASSWORD){ alert("Mot de passe incorrect."); return; }
+  }
+  state.sellerMode = !state.sellerMode;
+  state.view = state.sellerMode ? "admin" : "shop";
+  state.editing = null;
+  render();
+}
+
+function addToCart(id){
+  const p = state.products.find(x => x.id === id);
+  const found = state.cart.find(x => x.id === id);
+  if (found) found.qty += 1;
+  else state.cart.push({ ...p, qty: 1 });
+  render();
+}
+
+function setQty(id, qty){
+  if (qty <= 0) { state.cart = state.cart.filter(x => x.id !== id); }
+  else { const it = state.cart.find(x => x.id === id); if (it) it.qty = qty; }
+  render();
+}
+
+function removeFromCart(id){ state.cart = state.cart.filter(x => x.id !== id); render(); }
+
+function startEdit(id){
+  state.editing = id ? state.products.find(p => p.id === id) : "new";
+  state.formPhoto = state.editing === "new" ? null : state.editing.photo;
+  render();
+}
+function cancelEdit(){ state.editing = null; state.formPhoto = null; render(); }
+
+function deleteProduct(id){ state.products = state.products.filter(p => p.id !== id); render(); }
+
+function saveProduct(e){
+  e.preventDefault();
+  const name = document.getElementById('f-name').value.trim();
+  const price = Number(document.getElementById('f-price').value);
+  const description = document.getElementById('f-desc').value.trim();
+  const paymentLink = document.getElementById('f-paylink').value.trim();
+  if (!name || !(price > 0)) return;
+  const isNew = state.editing === "new";
+  const id = isNew ? uid() : state.editing.id;
+  const product = { id, name, price, description, photo: state.formPhoto, paymentLink: paymentLink || null };
+  if (isNew) state.products.unshift(product);
+  else state.products = state.products.map(p => p.id === id ? product : p);
+  state.editing = null;
+  state.formPhoto = null;
+  render();
+}
+
+function handleFile(e){
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => { state.formPhoto = reader.result; render(); };
+  reader.readAsDataURL(file);
+}
+
+function setPhotoUrl(){
+  const val = document.getElementById('f-photourl').value.trim();
+  if (val) { state.formPhoto = val; render(); }
+}
+function clearPhoto(){ state.formPhoto = null; render(); }
+
+function goCheckout(){ state.view = "checkout"; render(); }
+
+async function payWithStripe(){
+  const btn = document.getElementById('pay-btn');
+  btn.disabled = true; btn.textContent = "Redirection vers Stripe...";
+  try {
+    const res = await fetch(`${BACKEND_URL}/create-checkout-session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cart: state.cart.map(i => ({ name: i.name, price: i.price, qty: i.qty })),
+        successUrl: window.location.origin + window.location.pathname + "?payment=success",
+        cancelUrl: window.location.origin + window.location.pathname + "?payment=cancel",
+      }),
+    });
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url; // redirige vers la page de paiement Stripe
+    } else {
+      alert("Erreur : " + (data.error || "impossible de créer le paiement."));
+      btn.disabled = false; btn.textContent = "Payer avec Stripe";
+    }
+  } catch (err) {
+    alert("Impossible de contacter le serveur de paiement. Vérifiez que BACKEND_URL est bien configuré.");
+    btn.disabled = false; btn.textContent = "Payer avec Stripe";
+  }
+}
+
+// Vérifie si on revient d'une redirection Stripe
+(function checkPaymentReturn(){
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("payment") === "success"){
+    state.cart = [];
+    state.view = "confirmation";
+    window.history.replaceState({}, "", window.location.pathname);
+  } else if (params.get("payment") === "cancel"){
+    state.view = "cart";
+    window.history.replaceState({}, "", window.location.pathname);
+  }
+})();
+
+function backToShopAfterOrder(){ state.order = null; state.view = "shop"; render(); }
+
+// ---------- Render helpers ----------
+function productCardHtml(p, sellerView){
+  const photo = p.photo
+    ? `<img src="${p.photo}" alt="${escapeHtml(p.name)}">`
+    : `<div class="placeholder">Pas de photo</div>`;
+  const buyAction = p.paymentLink
+    ? `window.open('${p.paymentLink.replace(/'/g, "&#39;")}', '_blank')`
+    : `addToCart('${p.id}')`;
+  const actions = sellerView
+    ? `<div style="display:flex;gap:6px;">
+         <button class="btn" onclick="startEdit('${p.id}')">Modifier</button>
+         <button class="btn btn-danger" onclick="deleteProduct('${p.id}')">Retirer</button>
+       </div>`
+    : `<button class="btn btn-accent" onclick="${buyAction}">Acheter</button>`;
+  return `
+    <div class="card">
+      <div class="photo">${photo}</div>
+      <div class="body">
+        <h3>${escapeHtml(p.name)}</h3>
+        ${p.description ? `<p>${escapeHtml(p.description)}</p>` : ""}
+        ${sellerView ? `<div style="font-size:11.5px;opacity:.6;">${p.paymentLink ? "✓ Paiement Stripe configuré" : "Paiement de démo (pas de lien Stripe)"}</div>` : ""}
+        <div class="row">
+          <span class="price-tag">${currency(p.price)}</span>
+          ${actions}
+        </div>
+      </div>
+    </div>`;
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderHeaderActions(){
+  const el = document.getElementById('headerActions');
+  let html = `<button class="btn ${state.sellerMode ? 'btn-accent' : ''}" onclick="toggleSeller()">
+      ${state.sellerMode ? "Quitter le mode vendeur" : "Mode vendeur"}
+    </button>`;
+  if (!state.sellerMode){
+    const count = state.cart.reduce((s,i)=>s+i.qty,0);
+    html += `<button class="btn" onclick="setView('cart')">Panier${count>0?` (${count})`:""}</button>`;
+  }
+  el.innerHTML = html;
+}
+
+function renderShop(){
+  const n = state.products.length;
+  return `
+    <h1 style="font-size:30px;margin-bottom:4px;">Les articles du moment</h1>
+    <p style="opacity:.65;margin-top:0;margin-bottom:26px;font-size:14.5px;">${n} article${n>1?'s':''} disponible${n>1?'s':''}</p>
+    ${n===0 ? `<p style="opacity:.6;">Aucun article pour le moment.</p>` :
+      `<div class="grid">${state.products.map(p=>productCardHtml(p,false)).join("")}</div>`}
+  `;
+}
+
+function renderAdmin(){
+  if (state.editing){
+    const initial = state.editing === "new" ? null : state.editing;
+    return `
+      <h1 style="font-size:28px;margin-bottom:18px;">Gérer mes articles</h1>
+      <form class="form-card" onsubmit="saveProduct(event)">
+        <h3 style="margin-top:0;font-size:20px;">${initial ? "Modifier l'article" : "Ajouter un article"}</h3>
+        <label class="field"><span>Nom de l'article</span>
+          <input class="input" id="f-name" value="${initial ? escapeHtml(initial.name) : ''}" placeholder="Ex. Manteau en laine">
+        </label>
+        <label class="field"><span>Prix (EUR)</span>
+          <input class="input" id="f-price" type="number" min="0" step="0.5" value="${initial ? initial.price : ''}" placeholder="0.00">
+        </label>
+        <label class="field"><span>Description (optionnel)</span>
+          <textarea class="input" id="f-desc" placeholder="État, taille, détails utiles...">${initial ? escapeHtml(initial.description||'') : ''}</textarea>
+        </label>
+        <label class="field"><span>Lien de paiement Stripe (optionnel)</span>
+          <input class="input" id="f-paylink" value="${initial && initial.paymentLink ? escapeHtml(initial.paymentLink) : ''}" placeholder="https://buy.stripe.com/xxxxx">
+        </label>
+        <label class="field"><span>Photo</span>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            ${state.formPhoto ? `<div style="width:96px;height:96px;border-radius:4px;overflow:hidden;border:1.5px solid var(--line);"><img src="${state.formPhoto}" style="width:100%;height:100%;object-fit:cover;"></div>` : ''}
+            <div style="display:flex;gap:8px;">
+              <button type="button" class="btn" onclick="document.getElementById('f-file').click()">Choisir un fichier</button>
+              ${state.formPhoto ? `<button type="button" class="btn" onclick="clearPhoto()">Retirer la photo</button>` : ''}
+            </div>
+            <input id="f-file" type="file" accept="image/*" style="display:none" onchange="handleFile(event)">
+            <div style="display:flex;gap:6px;">
+              <input class="input" id="f-photourl" placeholder="ou coller une URL d'image" style="flex:1;">
+              <button type="button" class="btn" onclick="setPhotoUrl()">OK</button>
+            </div>
+          </div>
+        </label>
+        <div style="display:flex;gap:8px;margin-top:6px;">
+          <button type="submit" class="btn btn-primary">Enregistrer</button>
+          <button type="button" class="btn" onclick="cancelEdit()">Annuler</button>
+        </div>
+      </form>
+    `;
+  }
+  return `
+    <h1 style="font-size:28px;margin-bottom:18px;">Gérer mes articles</h1>
+    <div style="margin-bottom:20px;">
+      <button class="btn btn-primary" onclick="startEdit(null)">+ Ajouter un article</button>
+    </div>
+    ${state.products.length===0 ? `<p style="opacity:.6;">Aucun article. Ajoutez-en un pour commencer.</p>` :
+      `<div class="grid">${state.products.map(p=>productCardHtml(p,true)).join("")}</div>`}
+  `;
+}
+
+function renderCart(){
+  if (state.cart.length === 0){
+    return `
+      <div style="padding:40px 0;">
+        <p style="opacity:.7;">Le panier est vide pour l'instant.</p>
+        <button class="btn" onclick="setView('shop')">Retour à la boutique</button>
+      </div>`;
+  }
+  const total = state.cart.reduce((s,i)=>s+i.price*i.qty,0);
+  return `
+    <div style="max-width:560px;">
+      <h2 style="font-size:24px;margin-top:0;">Panier</h2>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${state.cart.map(item => `
+          <div style="display:flex;align-items:center;gap:12px;background:var(--card);border:1.5px solid var(--line);border-radius:6px;padding:10px;">
+            <div style="width:56px;height:56px;border-radius:4px;overflow:hidden;flex-shrink:0;">
+              ${item.photo ? `<img src="${item.photo}" style="width:100%;height:100%;object-fit:cover;">` : `<div class="placeholder" style="font-size:10px;">Pas de photo</div>`}
+            </div>
+            <div style="flex:1;">
+              <div style="font-weight:500;font-size:14.5px;">${escapeHtml(item.name)}</div>
+              <div style="font-size:13px;opacity:.65;">${currency(item.price)} / unité</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <button class="qty-btn" onclick="setQty('${item.id}', ${item.qty-1})">–</button>
+              <span style="min-width:18px;text-align:center;">${item.qty}</span>
+              <button class="qty-btn" onclick="setQty('${item.id}', ${item.qty+1})">+</button>
+            </div>
+            <button class="btn btn-danger" onclick="removeFromCart('${item.id}')">Retirer</button>
+          </div>
+        `).join("")}
+      </div>
+      <div class="divider" style="display:flex;justify-content:space-between;align-items:center;margin-top:18px;padding-top:14px;">
+        <span class="serif" style="font-size:19px;">Total : ${currency(total)}</span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn" onclick="setView('shop')">Continuer mes achats</button>
+          <button class="btn btn-accent" onclick="goCheckout()">Passer au paiement</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderCheckout(){
+  const total = state.cart.reduce((s,i)=>s+i.price*i.qty,0);
+  return `
+    <div style="max-width:460px;">
+      <h2 style="font-size:24px;margin-top:0;">Paiement</h2>
+      <div class="note">Vous allez être redirigé(e) vers Stripe pour payer en toute sécurité. Votre adresse de livraison et votre email vous seront demandés sur la page Stripe.</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;">
+        ${state.cart.map(item => `
+          <div style="display:flex;justify-content:space-between;font-size:14px;">
+            <span>${escapeHtml(item.name)} × ${item.qty}</span>
+            <span>${currency(item.price*item.qty)}</span>
+          </div>`).join("")}
+      </div>
+      <div class="divider" style="display:flex;justify-content:space-between;align-items:center;padding-top:14px;">
+        <span class="serif" style="font-size:18px;">${currency(total)}</span>
+        <div style="display:flex;gap:8px;">
+          <button type="button" class="btn" onclick="setView('cart')">Retour</button>
+          <button type="button" id="pay-btn" class="btn btn-accent" onclick="payWithStripe()">Payer avec Stripe</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderConfirmation(){
+  return `
+    <div style="max-width:420px;padding:20px 0;">
+      <div style="font-size:34px;margin-bottom:6px;">✓</div>
+      <h2 style="font-size:24px;margin-top:0;">Commande confirmée</h2>
+      <p style="opacity:.75;line-height:1.5;">Merci pour votre achat ! Un email de confirmation vous a été envoyé par Stripe, et la commande apparaît dans votre tableau de bord Stripe.</p>
+      <button class="btn btn-accent" onclick="backToShopAfterOrder()">Retour à la boutique</button>
+    </div>
+  `;
+}
+
+function render(){
+  renderHeaderActions();
+  const main = document.getElementById('main');
+  if (state.view === "shop") main.innerHTML = renderShop();
+  else if (state.view === "admin") main.innerHTML = renderAdmin();
+  else if (state.view === "cart") main.innerHTML = renderCart();
+  else if (state.view === "checkout") main.innerHTML = renderCheckout();
+  else if (state.view === "confirmation") main.innerHTML = renderConfirmation();
+}
+
+render();
+</script>
+</body>
+</html>
